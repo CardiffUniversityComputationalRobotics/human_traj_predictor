@@ -1,16 +1,18 @@
 import rclpy
 from rclpy.node import Node
+import torch
+import math
 from nav_msgs.msg import Odometry
 from pedsim_msgs.msg import AgentStates
-import torch
 from collections import defaultdict, deque
+from tf_transformations import euler_from_quaternion
 
 
 class HumanTrajPredictor(Node):
     def __init__(self):
         super().__init__("human_traj_predictor")
 
-        self.recording_period = 0.3
+        self.recording_period = 0.5
 
         self.agents_data = None
         self.odom_data = None
@@ -36,7 +38,9 @@ class HumanTrajPredictor(Node):
             self.recording_period, self.recording_callback
         )
 
-        self.timer = self.create_timer(0.5, self.get_social_agents_tensor)
+        # self.social_tensor_timer = self.create_timer(0.5, self.get_social_agents_tensor)
+        self.odom_tensor_timer = self.create_timer(0.5, self.get_odom_tensor)
+        # self.mask_tensor_timer = self.create_timer(0.5, self.get_mask_tensor)
 
     def recording_callback(self):
         # AGENTS RECORDING
@@ -53,12 +57,20 @@ class HumanTrajPredictor(Node):
                 self.agent_history[agent_id].append(agent_data)
 
         if self.odom_data:
+            yaw = euler_from_quaternion(
+                [
+                    self.odom_data.pose.pose.orientation.x,
+                    self.odom_data.pose.pose.orientation.y,
+                    self.odom_data.pose.pose.orientation.z,
+                    self.odom_data.pose.pose.orientation.w,
+                ]
+            )[2]
             # ODOM RECORDING
             odom_data = (
                 self.odom_data.pose.pose.position.x,
                 self.odom_data.pose.pose.position.y,
-                self.odom_data.twist.twist.linear.x,
-                self.odom_data.twist.twist.linear.y,
+                self.odom_data.twist.twist.linear.x * math.cos(yaw),
+                self.odom_data.twist.twist.linear.x * math.sin(yaw),
                 self.odom_data.header.stamp.sec
                 + self.odom_data.header.stamp.nanosec * 1e-9,
             )
@@ -84,25 +96,41 @@ class HumanTrajPredictor(Node):
             all_agents.append(positions)
 
         if all_agents:
-            all_agents_tensor = torch.tensor(all_agents, dtype=torch.float32)
-            print("=================================")
-            print(all_agents_tensor)
-            print("#################################")
+            all_agents_tensor = torch.transpose(
+                torch.tensor(all_agents, dtype=torch.float32), 0, 1
+            ).unsqueeze(0)
+            return all_agents_tensor
         return torch.empty((0, 5, 2))
 
-    # def get_social_agents_tensor(self):
-    #     all_agents = []
-    #     for agent_id, history in self.agent_history.items():
-    #         positions = list(history)  # Convert deque to list
-    #         while len(positions) < 5:
-    #             positions.insert(
-    #                 0, positions[0]
-    #             )  # Pad with the first position if less than 5
-    #         all_agents.append(positions)
+    def get_odom_tensor(self):
+        # TENSOR STRUCTURE
+        # (n_env, obs_seq_len, 1, 5)
+        # where 5 includes [x, y, v_x, v_y, timestep]
 
-    #     if all_agents:
-    #         return torch.tensor(all_agents, dtype=torch.float32)
-    #     return torch.empty((0, 5, 2))  # Return an empty tensor if no data
+        odom_data = []
+        for id_, history in self.odom_history.items():
+            positions = list(history)  # Convert deque to list
+            while len(positions) < 5:
+                positions.insert(
+                    0, positions[0]
+                )  # Pad with the first position if less than 5
+            odom_data.append(positions)
+
+        if odom_data:
+            odom_tensor = torch.transpose(
+                torch.tensor(odom_data, dtype=torch.float32), 0, 1
+            ).unsqueeze(0)
+            print(odom_tensor)
+            return odom_tensor
+        return torch.empty((0, 5, 2))  # Return an empty tensor if no data
+
+    def get_mask_tensor(self):
+        # TENSOR STRUCTURE
+        # (n_env, obs_seq_len, max_num_agent)
+        mask_tensor = torch.full((5, 5), True).unsqueeze(0)
+        print(mask_tensor.shape)
+        print(mask_tensor)
+        return mask_tensor
 
 
 def main(args=None):
