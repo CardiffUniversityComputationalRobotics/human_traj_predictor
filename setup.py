@@ -1,3 +1,5 @@
+import os
+from glob import glob
 from setuptools import find_packages, setup
 
 package_name = "human_traj_predictor"
@@ -9,6 +11,93 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
+        # ! PKL
+        (
+            os.path.join(
+                "share",
+                package_name,
+                "human_traj_predictor",
+                "ped_pred",
+                "TrainedModel",
+                "uncertainty_aware_model",
+                "CollisionGrid",
+            ),
+            glob(
+                os.path.join(
+                    "human_traj_predictor/ped_pred/TrainedModel/uncertainty_aware_model/CollisionGrid",
+                    "*.pkl",
+                )
+            ),
+        ),
+        # ! CHECKPOINT
+        (
+            os.path.join(
+                "share",
+                package_name,
+                "human_traj_predictor",
+                "ped_pred",
+                "TrainedModel",
+                "uncertainty_aware_model",
+                "CollisionGrid",
+            ),
+            glob(
+                os.path.join(
+                    "human_traj_predictor/ped_pred/TrainedModel/uncertainty_aware_model/CollisionGrid",
+                    "*.tar",
+                )
+            ),
+        ),
+        # ! CHECKPOINT
+        (
+            os.path.join(
+                "share",
+                package_name,
+                "human_traj_predictor",
+                "ped_pred",
+                "Data",
+                "HBS",
+            ),
+            glob(
+                os.path.join(
+                    "human_traj_predictor/ped_pred/Data/HBS",
+                    "*.csv",
+                )
+            ),
+        ),
+        # ! CHECKPOINT
+        (
+            os.path.join(
+                "share",
+                package_name,
+                "human_traj_predictor",
+                "ped_pred",
+                "Data",
+                "HBS",
+            ),
+            glob(
+                os.path.join(
+                    "human_traj_predictor/ped_pred/Data/HBS",
+                    "*.csv",
+                )
+            ),
+        ),
+        # ! CPKL
+        (
+            os.path.join(
+                "share",
+                package_name,
+                "human_traj_predictor",
+                "ped_pred",
+                "Data",
+                "preprocessed",
+            ),
+            glob(
+                os.path.join(
+                    "human_traj_predictor/ped_pred/Data/preprocessed",
+                    "*.cpkl",
+                )
+            ),
+        ),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
