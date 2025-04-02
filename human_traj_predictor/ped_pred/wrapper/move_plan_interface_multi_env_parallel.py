@@ -5,7 +5,6 @@ from ped_pred.helper import getCoef, cov_mat_generation
 
 
 class MovePlanPredInterfaceMultiEnv(object):
-
     def __init__(self, config, num_env):
 
         self.nenv = num_env

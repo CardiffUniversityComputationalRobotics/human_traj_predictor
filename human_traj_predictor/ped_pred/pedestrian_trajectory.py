@@ -16,7 +16,6 @@ human_traj_predictor_dir = FindPackageShare(package="human_traj_predictor").find
 
 
 class traj_prediction:
-
     def __init__(self):
 
         # parser = argparse.ArgumentParser()
@@ -36,8 +35,8 @@ class traj_prediction:
 
         # self.sample_args = parser.parse_args()
 
-        self.obs_length = 5
-        self.pred_length = 5
+        self.obs_length = 6
+        self.pred_length = 6
         self.use_cuda = True
 
         # seq_length = obs_length + pred_length
@@ -322,9 +321,9 @@ class traj_prediction:
             )
             if tstep == self.obs_length - 1:
                 # storing the actual prediction in the last observed frame position
-                ret_x_seq[self.obs_length - 1, :, :2] = (
-                    last_observed_frame_prediction.clone()
-                )
+                ret_x_seq[
+                    self.obs_length - 1, :, :2
+                ] = last_observed_frame_prediction.clone()
 
             # Extract the mean, std and corr of the bivariate Gaussian
             mux, muy, sx, sy, corr = getCoef(outputs.cpu())

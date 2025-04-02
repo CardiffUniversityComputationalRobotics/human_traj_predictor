@@ -124,7 +124,7 @@ def Gaussian2DLikelihood(outputs, targets, nodesPresent, look_up):
     sxsy = sx * sy
 
     z = (normx / sx) ** 2 + (normy / sy) ** 2 - 2 * ((corr * normx * normy) / sxsy)
-    negRho = 1 - corr**2
+    negRho = 1 - corr ** 2
 
     # Numerator
     result = torch.exp(-z / (2 * negRho))
@@ -251,7 +251,6 @@ def revert_postion_change(
     # prediction part
     if len(x_seq) > obs_length:  # if we have prediction part
         if infer == True:
-            print(absolute_x_seq)
             absolute_x_seq[obs_length, :, :2] = (
                 absolute_x_seq[obs_length, :, :2] + orig_x_seq[obs_length - 1, :, :2]
             )  # using the last observed pos
@@ -380,11 +379,11 @@ def KF_covariance_generator(
     # Process and measurement noise covariance matrices
     process_noise = (
         torch.eye(4, dtype=torch.float32).view(1, 4, 4).repeat(num_peds, 1, 1)
-        * process_noise_std**2
+        * process_noise_std ** 2
     )
     measurement_noise = (
         torch.eye(2, dtype=torch.float32).view(1, 2, 2).repeat(num_peds, 1, 1)
-        * measurement_noise_std**2
+        * measurement_noise_std ** 2
     )
 
     # State transition matrix and measurement matrix
@@ -487,8 +486,8 @@ def cov_mat_generation(
     rho = dist_param[:, :, 4]
 
     # compute the element of the covariance matrix
-    sigma_x2 = sigma_x**2
-    sigma_y2 = sigma_y**2
+    sigma_x2 = sigma_x ** 2
+    sigma_y2 = sigma_y ** 2
     sigma_xy = sigma_x * sigma_y
     rho_sigma_xy = rho * sigma_xy
 
