@@ -22,9 +22,9 @@ class HumanTrajPredictor(Node):
         super().__init__("human_traj_predictor")
 
         self.recording_period = 0.5
-        self.sequence_length = 5
-        self.pred_len = 5
-        self.max_human_num = 60
+        self.sequence_length = 6
+        self.pred_len = 6
+        self.max_human_num = 5
 
         self.agents_data = None
         self.odom_data = None
@@ -67,17 +67,19 @@ class HumanTrajPredictor(Node):
         if self.agents_data and self.odom_data:
 
             # ped and robot tensors
-            ped_pos = get_social_agents_tensor(self.agents_history)
-            robot_pos = get_odom_tensor(self.odom_history)
+            ped_pos = get_social_agents_tensor(
+                self.sequence_length, self.agents_history
+            )
+            robot_pos = get_odom_tensor(self.sequence_length, self.odom_history)
 
             # mask tensors
             ped_mask = get_mask_tensor(
                 self.sequence_length, len(self.agents_history.keys()), True
             )
-            veh_mask = get_mask_tensor(self.sequence_length, 1, False)
+            veh_mask = get_mask_tensor(self.sequence_length + 1, 2, False)
 
             # empty tensors
-            veh_pos = torch.zeros(self.sequence_length, 1, 5)
+            veh_pos = torch.zeros(self.sequence_length + 1, 2, 5)
             robot_plan_env = torch.zeros(1, 1, 1)
 
             ob_ped_pos, ob_ped_mask, col_ind_pres_peds = filter_curr_ob(
@@ -86,6 +88,12 @@ class HumanTrajPredictor(Node):
             ob_veh_pos, ob_veh_mask, col_ind_pres_vehs = filter_curr_ob(
                 veh_pos, veh_mask
             )
+
+            print("=====================")
+            print("ped_pos shape: ", ped_pos.shape)
+            print("veh_pos shape: ", veh_pos.shape)
+            print("robot_pos shape: ", robot_pos.shape)
+            print("++++++++++++++++++++")
 
             pred_pos = torch.zeros((self.pred_len, self.max_human_num, 5))
             pred_dist = torch.zeros((self.pred_len, self.max_human_num, 5))
