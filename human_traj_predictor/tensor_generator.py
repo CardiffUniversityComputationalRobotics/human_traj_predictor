@@ -1,7 +1,7 @@
 import torch
 
 
-def get_social_agents_tensor(agent_history):
+def get_social_agents_tensor(sequence_length, agent_history):
     # TENSOR STRUCTURE
     # (n_env, obs_seq_len, max_num_agent, 5)
     # where 5 includes [x, y, v_x, v_y, timestep]
@@ -10,7 +10,7 @@ def get_social_agents_tensor(agent_history):
     for agent_id, history in agent_history.items():
         positions = list(history)
         # print(positions)
-        while len(positions) < 5:
+        while len(positions) < sequence_length:
             positions.insert(0, positions[0])
         all_agents.append(positions)
 
@@ -22,7 +22,7 @@ def get_social_agents_tensor(agent_history):
     return torch.empty((0, 5, 2))
 
 
-def get_odom_tensor(odom_history):
+def get_odom_tensor(sequence_length, odom_history):
     # TENSOR STRUCTURE
     # (n_env, obs_seq_len, 1, 5)
     # where 5 includes [x, y, v_x, v_y, timestep]
@@ -30,7 +30,7 @@ def get_odom_tensor(odom_history):
     odom_data = []
     for id_, history in odom_history.items():
         positions = list(history)  # Convert deque to list
-        while len(positions) < 5:
+        while len(positions) < sequence_length:
             positions.insert(
                 0, positions[0]
             )  # Pad with the first position if less than 5
