@@ -2,6 +2,10 @@ import torch
 
 
 def get_social_agents_tensor(sequence_length, agent_history):
+    """Receives the number of the sequences and the historical data of the social
+    agents, including position and velocities. Then returns the tensor with the
+    gathered information."""
+
     # TENSOR STRUCTURE
     # (n_env, obs_seq_len, max_num_agent, 5)
     # where 5 includes [x, y, v_x, v_y, timestep]
@@ -23,6 +27,9 @@ def get_social_agents_tensor(sequence_length, agent_history):
 
 
 def get_odom_tensor(sequence_length, odom_history):
+    """Receives the number of the sequences and the historical data of the robot.
+    Then returns the tensor with the gathered information."""
+
     # TENSOR STRUCTURE
     # (n_env, obs_seq_len, 1, 5)
     # where 5 includes [x, y, v_x, v_y, timestep]
@@ -46,6 +53,7 @@ def get_odom_tensor(sequence_length, odom_history):
 
 
 def get_mask_tensor(sequence_length, num_agents, mask_value):
+    "Generates a mask tensor full of boolean values"
     # TENSOR STRUCTURE
     # (n_env, obs_seq_len, max_num_agent)
     mask_tensor = torch.full((sequence_length, num_agents), mask_value)
