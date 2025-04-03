@@ -1,11 +1,12 @@
+import math
+from collections import defaultdict, deque
 import rclpy
 from rclpy.node import Node
 import torch
-import math
 from nav_msgs.msg import Odometry
 from pedsim_msgs.msg import AgentStates
-from collections import defaultdict, deque
 from tf_transformations import euler_from_quaternion
+from visualization_msgs.msg import Marker, MarkerArray
 from human_traj_predictor.ped_pred.DataLoader import DataLoader
 from human_traj_predictor.ped_pred.pedestrian_trajectory import traj_prediction
 from human_traj_predictor.ped_pred.helper import getCoef, cov_mat_generation
@@ -15,7 +16,11 @@ from human_traj_predictor.tensor_generator import (
     get_social_agents_tensor,
     filter_curr_ob,
 )
-from visualization_msgs.msg import Marker, MarkerArray
+from tidup_move_base_msgs.msg import (
+    AgentStatesPrediction,
+    AgentStatePrediction,
+    PoseWith2DCovariance,
+)
 
 
 class HumanTrajPredictor(Node):
@@ -62,11 +67,7 @@ class HumanTrajPredictor(Node):
             self.recording_period_, self.recording_callback
         )
 
-        # self.social_tensor_timer = self.create_timer(0.5, self.get_social_agents_tensor)
-        # self.odom_tensor_timer = self.create_timer(0.5, self.get_odom_tensor)
-        # self.mask_tensor_timer = self.create_timer(0.5, self.get_mask_tensor)
         self.pred_timer = self.create_timer(0.1, self.predict_traj)
-        print("ready to predict")
 
     def predict_traj(self):
 
@@ -94,7 +95,7 @@ class HumanTrajPredictor(Node):
 
             # empty tensors
             veh_pos = torch.rand(self.sequence_length_ * 2, 15, 5)
-            robot_plan_env = torch.zeros(6, 1, 5)
+            robot_plan_env = torch.zeros(self.sequence_length_, 1, 5)
 
             ob_ped_pos, ob_ped_mask, col_ind_pres_peds = filter_curr_ob(
                 ped_pos, ped_mask
@@ -144,11 +145,26 @@ class HumanTrajPredictor(Node):
                 pred_dist[:, col_ind_pres_peds, :] = dist_param.cpu()
                 pred_cov[:, col_ind_pres_peds, :, :] = cov.cpu()
 
-                print(pred_pos.shape)
-                print(pred_pos)
-                # print(pred_cov.shape)
+                # print(pred_pos.shape)
+                # print(pred_pos)
+                print(pred_cov.shape)
                 # print(pred_cov)
-                self.publish_marker_array(pred_pos.tolist())
+            self.publish_marker_array(pred_pos.tolist())
+            self.publish_agents_prediction(pred_pos.tolist(), pred_cov.tolist())
+
+    def publish_agents_prediction(self, pred_tensor, cov_tensor):
+        agent_states_prediction = AgentStatesPrediction()
+        for j in range(self.max_human_num_):
+            agent_state_prediction = AgentStatePrediction()
+            agent_state_prediction.agent_state = self.agents_data_[j]
+            for i in range(self.sequence_length_):
+                predicted_pose = PoseWith2DCovariance()
+                # predicted_pose.pose =
+                # predicted_pose.covariance =
+                agent_state_prediction.predicted_poses.append(predicted_pose)
+            agent_states_prediction.agent_states_prediction.append(
+                agent_state_prediction
+            )
 
     def publish_marker_array(self, pred_tensor):
         marker_array = MarkerArray()
@@ -223,6 +239,7 @@ class HumanTrajPredictor(Node):
         self.history_counter_ += 1
 
     def agent_states_callback(self, msg: AgentStates):
+        self.max_human_num_ = len(msg.agent_states)
         self.agents_data_ = msg.agent_states
 
     def odom_callback(self, msg: Odometry):
