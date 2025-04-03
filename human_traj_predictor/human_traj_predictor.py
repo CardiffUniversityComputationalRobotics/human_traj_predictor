@@ -24,30 +24,28 @@ class HumanTrajPredictor(Node):
         self.recording_period = 0.5
         self.sequence_length = 6
         self.pred_len = 6
-        self.max_human_num = 5
+        self.max_human_num = 60
+
+        self.history_counter = 0
 
         self.agents_data = None
         self.odom_data = None
 
-        print("about to run")
-
         self.ped_traj_pred = traj_prediction()
         self.dataloader = DataLoader(phase="test")
-
-        print("passed loader")
 
         self.agent_states_sub = self.create_subscription(
             AgentStates,
             "/pedsim_simulator/simulated_agents",
             self.agent_states_callback,
-            10,
+            1,
         )
 
         self.odom_sub = self.create_subscription(
             Odometry,
             "/odom",
             self.odom_callback,
-            10,
+            1,
         )
 
         self.agents_history = defaultdict(lambda: deque(maxlen=self.sequence_length))
@@ -64,23 +62,32 @@ class HumanTrajPredictor(Node):
         print("ready to predict")
 
     def predict_traj(self):
-        if self.agents_data and self.odom_data:
+
+        if (
+            self.agents_data
+            and self.odom_data
+            and self.history_counter > self.sequence_length
+        ):
 
             # ped and robot tensors
             ped_pos = get_social_agents_tensor(
                 self.sequence_length, self.agents_history
             )
+            ped_pos = torch.cat((ped_pos, torch.zeros(6, 55, 5)), dim=1)
             robot_pos = get_odom_tensor(self.sequence_length, self.odom_history)
 
             # mask tensors
             ped_mask = get_mask_tensor(
                 self.sequence_length, len(self.agents_history.keys()), True
             )
-            veh_mask = get_mask_tensor(self.sequence_length + 1, 2, False)
+            ped_mask = torch.cat((ped_mask, torch.full((6, 55), False)), dim=1)
+
+            veh_mask = get_mask_tensor(self.sequence_length * 2, 1, False)
+            veh_mask = torch.cat((veh_mask, torch.full((12, 14), False)), dim=1)
 
             # empty tensors
-            veh_pos = torch.zeros(self.sequence_length + 1, 2, 5)
-            robot_plan_env = torch.zeros(1, 1, 1)
+            veh_pos = torch.rand(self.sequence_length * 2, 15, 5)
+            robot_plan_env = torch.zeros(6, 1, 5)
 
             ob_ped_pos, ob_ped_mask, col_ind_pres_peds = filter_curr_ob(
                 ped_pos, ped_mask
@@ -89,11 +96,13 @@ class HumanTrajPredictor(Node):
                 veh_pos, veh_mask
             )
 
-            print("=====================")
-            print("ped_pos shape: ", ped_pos.shape)
-            print("veh_pos shape: ", veh_pos.shape)
-            print("robot_pos shape: ", robot_pos.shape)
-            print("++++++++++++++++++++")
+            # print("=====================")
+            # print("ped_pos shape: ", ped_pos.shape)
+            # print("ped_mask shape: ", ped_mask.shape)
+            # print("veh_pos shape: ", veh_pos.shape)
+            # print("veh_mask shape: ", veh_mask.shape)
+            # print("robot_pos shape: ", robot_pos.shape)
+            # print("++++++++++++++++++++")
 
             pred_pos = torch.zeros((self.pred_len, self.max_human_num, 5))
             pred_dist = torch.zeros((self.pred_len, self.max_human_num, 5))
@@ -164,6 +173,8 @@ class HumanTrajPredictor(Node):
                 + self.odom_data.header.stamp.nanosec * 1e-9,
             )
             self.odom_history[0].append(odom_data)
+
+        self.history_counter += 1
 
     def agent_states_callback(self, msg: AgentStates):
         self.agents_data = msg.agent_states

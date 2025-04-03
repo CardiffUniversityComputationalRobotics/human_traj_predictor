@@ -321,9 +321,9 @@ class traj_prediction:
             )
             if tstep == self.obs_length - 1:
                 # storing the actual prediction in the last observed frame position
-                ret_x_seq[
-                    self.obs_length - 1, :, :2
-                ] = last_observed_frame_prediction.clone()
+                ret_x_seq[self.obs_length - 1, :, :2] = (
+                    last_observed_frame_prediction.clone()
+                )
 
             # Extract the mean, std and corr of the bivariate Gaussian
             mux, muy, sx, sy, corr = getCoef(outputs.cpu())
@@ -388,7 +388,7 @@ class traj_prediction:
             current_x_seq_veh = torch.index_select(
                 x_seq_veh[tstep + 1].cpu(), 0, list_of_x_seq_veh
             )
-
+            # print("before time conflict")
             prev_grid, prev_TTC_grid = getInteractionGridMask(
                 current_x_seq.data.cpu(),
                 current_x_seq.data.cpu(),
@@ -405,6 +405,7 @@ class traj_prediction:
                 is_heterogeneous=True,
                 frame_ego=ego_pre_planned_traj[tstep - (self.obs_length - 1)],
             )
+            # print("AFTER")
 
             prev_grid = Variable(torch.from_numpy(prev_grid).float())
             prev_grid_veh_in_ped = Variable(

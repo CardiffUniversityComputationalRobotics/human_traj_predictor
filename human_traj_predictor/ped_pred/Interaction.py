@@ -13,28 +13,29 @@ def Time2Conflict(
     Social_dis: The distance below which we consider the case a conflict. This distance differ for a ped-ped interaction compared to ped_veh
     """
 
-    print(other_velocity)
-    print(current_velocity)
-
+    # print("running time conflicttt")
+    # print(other_velocity)
+    # print(current_velocity)
+    # try:
     rel_position = other_position - current_position
     rel_velocity = other_velocity - current_velocity
     PdotV = rel_position[0] * rel_velocity[0] + rel_position[1] * rel_velocity[1]
     rel_p_norm2 = rel_position[0] ** 2 + rel_position[1] ** 2
     rel_v_norm2 = rel_velocity[0] ** 2 + rel_velocity[1] ** 2
 
-    delta = PdotV ** 2 - (rel_v_norm2 * (rel_p_norm2 - Social_dis ** 2))
+    delta = PdotV**2 - (rel_v_norm2 * (rel_p_norm2 - Social_dis**2))
 
     if rel_v_norm2 == 0 or delta < 0:
         t_conflict = -1  # they do not conflict. There conflict time it -inf or +inf
-    elif rel_p_norm2 ** 0.5 < Social_dis:
+    elif rel_p_norm2**0.5 < Social_dis:
         # We are already in conflict
         # (c in the equation ax^2+bx+c=0 gets negative and the roots are
         # one positive and one negative, but are meaningless for us as we are
         # already in conflict)
         t_conflict = 0
     else:  # both roots (times) are either positive or negative
-        t1 = (-PdotV - delta ** 0.5) / rel_v_norm2
-        t2 = (-PdotV + delta ** 0.5) / rel_v_norm2
+        t1 = (-PdotV - delta**0.5) / rel_v_norm2
+        t2 = (-PdotV + delta**0.5) / rel_v_norm2
         if t2 > 0:
             t_conflict = t1
             # both roots are positive but the smaller one should be considered. The bigger one is the time we get out of the conflict
@@ -43,6 +44,9 @@ def Time2Conflict(
             t_conflict = -1
 
     return t_conflict
+    # except:
+    #     print("failed time conflict")
+    #     return -1
 
 
 # def approach_dir_sector(current_position, current_velocity, other_position, num_sector):
