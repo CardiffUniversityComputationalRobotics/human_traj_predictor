@@ -21,6 +21,7 @@ from tidup_move_base_msgs.msg import (
     AgentStatePrediction,
     PoseWith2DCovariance,
 )
+from rclpy.time import Time as RclpyTime
 
 
 class HumanTrajPredictor(Node):
@@ -56,7 +57,12 @@ class HumanTrajPredictor(Node):
         )
 
         # ! PUBLISHERS
-        self.predictions_pub_ = self.create_publisher(MarkerArray, "agents_pred", 10)
+        self.predictions_pub_ = self.create_publisher(
+            AgentStatesPrediction, "agents_prediction", 10
+        )
+        self.predictions_marker_pub_ = self.create_publisher(
+            MarkerArray, "agents_pred_marker", 10
+        )
 
         # ! DATA HISTORY FOR MODEL
         self.agents_history = defaultdict(lambda: deque(maxlen=self.sequence_length_))
@@ -145,10 +151,6 @@ class HumanTrajPredictor(Node):
                 pred_dist[:, col_ind_pres_peds, :] = dist_param.cpu()
                 pred_cov[:, col_ind_pres_peds, :, :] = cov.cpu()
 
-                # print(pred_pos.shape)
-                # print(pred_pos)
-                print(pred_cov.shape)
-                # print(pred_cov)
             self.publish_marker_array(pred_pos.tolist())
             self.publish_agents_prediction(pred_pos.tolist(), pred_cov.tolist())
 
@@ -159,12 +161,22 @@ class HumanTrajPredictor(Node):
             agent_state_prediction.agent_state = self.agents_data_[j]
             for i in range(self.sequence_length_):
                 predicted_pose = PoseWith2DCovariance()
-                # predicted_pose.pose =
-                # predicted_pose.covariance =
+                predicted_pose.header.frame_id = self.agents_data_[j].header.frame_id
+                predicted_pose.header.stamp = (
+                    RclpyTime.from_msg(self.agents_data_[j].header.stamp)
+                    + rclpy.duration.Duration(seconds=(i + 1) * 0.5)
+                ).to_msg()
+                predicted_pose.pose.position.x = pred_tensor[i][j][0]
+                predicted_pose.pose.position.y = pred_tensor[i][j][1]
+                predicted_pose.covariance[0] = cov_tensor[i][j][0][0]
+                predicted_pose.covariance[1] = cov_tensor[i][j][0][1]
+                predicted_pose.covariance[2] = cov_tensor[i][j][1][0]
+                predicted_pose.covariance[3] = cov_tensor[i][j][1][1]
                 agent_state_prediction.predicted_poses.append(predicted_pose)
             agent_states_prediction.agent_states_prediction.append(
                 agent_state_prediction
             )
+        self.predictions_pub_.publish(agent_states_prediction)
 
     def publish_marker_array(self, pred_tensor):
         marker_array = MarkerArray()
@@ -199,7 +211,7 @@ class HumanTrajPredictor(Node):
                 marker_id += 1
 
             # Publish the MarkerArray
-            self.predictions_pub_.publish(marker_array)
+            self.predictions_marker_pub_.publish(marker_array)
 
     def recording_callback(self):
         # AGENTS RECORDING
