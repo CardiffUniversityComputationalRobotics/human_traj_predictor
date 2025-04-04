@@ -110,14 +110,6 @@ class HumanTrajPredictor(Node):
                 veh_pos, veh_mask
             )
 
-            # print("=====================")
-            # print("ped_pos shape: ", ped_pos.shape)
-            # print("ped_mask shape: ", ped_mask.shape)
-            # print("veh_pos shape: ", veh_pos.shape)
-            # print("veh_mask shape: ", veh_mask.shape)
-            # print("robot_pos shape: ", robot_pos.shape)
-            # print("++++++++++++++++++++")
-
             pred_pos = torch.zeros((self.pred_len_, self.max_human_num_, 5))
             pred_dist = torch.zeros((self.pred_len_, self.max_human_num_, 5))
             pred_cov = (
@@ -127,9 +119,6 @@ class HumanTrajPredictor(Node):
                 .repeat(self.pred_len_, self.max_human_num_, 1, 1)
             )
             # ones for making the inverse possible for not existing peds
-
-            # print("=====================")
-            # print(ob_ped_pos)
 
             with torch.no_grad():
                 # ped_pred: (pred_seq_len, num_peds, 5)
