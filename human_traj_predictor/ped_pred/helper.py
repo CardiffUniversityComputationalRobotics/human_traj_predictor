@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from human_traj_predictor.ped_pred.model_CollisionGrid import CollisionGridModel
-from human_traj_predictor.ped_pred.model_VanillaLSTM import VLSTMModel
 from torch.autograd import Variable
 import math
 
@@ -124,7 +123,7 @@ def Gaussian2DLikelihood(outputs, targets, nodesPresent, look_up):
     sxsy = sx * sy
 
     z = (normx / sx) ** 2 + (normy / sy) ** 2 - 2 * ((corr * normx * normy) / sxsy)
-    negRho = 1 - corr ** 2
+    negRho = 1 - corr**2
 
     # Numerator
     result = torch.exp(-z / (2 * negRho))
@@ -160,12 +159,7 @@ def Gaussian2DLikelihood(outputs, targets, nodesPresent, look_up):
 
 def get_model(index, arguments, infer=False):
 
-    if index == 4:
-        return CollisionGridModel(arguments, infer)
-    elif index == 3:
-        return VLSTMModel(arguments, infer)
-    else:
-        raise ValueError("Model not found")
+    return CollisionGridModel(arguments, infer)
 
 
 def sample_gaussian_2d(mux, muy, sx, sy, corr, mask):
@@ -379,11 +373,11 @@ def KF_covariance_generator(
     # Process and measurement noise covariance matrices
     process_noise = (
         torch.eye(4, dtype=torch.float32).view(1, 4, 4).repeat(num_peds, 1, 1)
-        * process_noise_std ** 2
+        * process_noise_std**2
     )
     measurement_noise = (
         torch.eye(2, dtype=torch.float32).view(1, 2, 2).repeat(num_peds, 1, 1)
-        * measurement_noise_std ** 2
+        * measurement_noise_std**2
     )
 
     # State transition matrix and measurement matrix
@@ -486,8 +480,8 @@ def cov_mat_generation(
     rho = dist_param[:, :, 4]
 
     # compute the element of the covariance matrix
-    sigma_x2 = sigma_x ** 2
-    sigma_y2 = sigma_y ** 2
+    sigma_x2 = sigma_x**2
+    sigma_y2 = sigma_y**2
     sigma_xy = sigma_x * sigma_y
     rho_sigma_xy = rho * sigma_xy
 
