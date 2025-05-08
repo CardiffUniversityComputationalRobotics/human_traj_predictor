@@ -139,7 +139,7 @@ class HumanTrajPredictor(Node):
                 pred_pos[:, col_ind_pres_peds, :] = ped_pred.cpu()
                 pred_dist[:, col_ind_pres_peds, :] = dist_param.cpu()
                 pred_cov[:, col_ind_pres_peds, :, :] = cov.cpu()
-
+            # print(pred_cov)
             self.publish_marker_array(pred_pos.tolist())
             self.publish_agents_prediction(pred_pos.tolist(), pred_cov.tolist())
 
