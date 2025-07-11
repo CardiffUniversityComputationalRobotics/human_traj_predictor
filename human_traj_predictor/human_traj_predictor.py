@@ -79,6 +79,7 @@ class HumanTrajPredictor(Node):
 
         if (
             self.agents_data_
+            and len(self.agents_data_) > 0
             and self.odom_data_
             and self.history_counter_ > self.sequence_length_
         ):
