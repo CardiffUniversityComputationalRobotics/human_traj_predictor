@@ -204,8 +204,8 @@ class HumanTrajPredictor(Node):
             self.predictions_marker_pub_.publish(marker_array)
 
     def recording_callback(self):
-        # AGENTS RECORDING
-        if self.agents_data_:
+        # AGENTS RECORDING AND ODOM RECORDING
+        if self.agents_data_ and self.odom_data_:
             for agent in self.agents_data_:
                 agent_id = agent.id
                 agent_data = (
@@ -217,8 +217,6 @@ class HumanTrajPredictor(Node):
                 )
                 self.agents_history[agent_id].append(agent_data)
 
-        # ODOM RECORDING
-        if self.odom_data_:
             yaw = euler_from_quaternion(
                 [
                     self.odom_data_.pose.pose.orientation.x,
@@ -238,7 +236,7 @@ class HumanTrajPredictor(Node):
             )
             self.odom_history[0].append(odom_data)
 
-        self.history_counter_ += 1
+            self.history_counter_ += 1
 
     def agent_states_callback(self, msg: AgentStates):
         self.max_human_num_ = len(msg.agent_states)
