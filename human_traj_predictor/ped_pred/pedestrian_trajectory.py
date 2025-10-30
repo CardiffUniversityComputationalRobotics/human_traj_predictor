@@ -16,7 +16,7 @@ human_traj_predictor_dir = FindPackageShare(package="human_traj_predictor").find
 
 
 class traj_prediction:
-    def __init__(self):
+    def __init__(self, sequence_len, pred_len, use_cuda):
 
         # parser = argparse.ArgumentParser()
 
@@ -35,9 +35,9 @@ class traj_prediction:
 
         # self.sample_args = parser.parse_args()
 
-        self.obs_length = 6
-        self.pred_length = 6
-        self.use_cuda = True
+        self.obs_length = sequence_len
+        self.pred_length = pred_len
+        self.use_cuda = use_cuda
 
         # seq_length = obs_length + pred_length
 

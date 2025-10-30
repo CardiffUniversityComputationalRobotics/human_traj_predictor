@@ -29,16 +29,18 @@ class HumanTrajPredictor(Node):
         super().__init__("human_traj_predictor")
 
         self.recording_period_ = 0.5
-        self.sequence_length_ = 6
-        self.pred_len_ = 6
-        self.max_human_num_ = 5
+        self.sequence_length_ = 18
+        self.pred_len_ = 18
+        self.max_human_num_ = 10
 
         self.history_counter_ = 0
 
         self.agents_data_ = None
         self.odom_data_ = None
 
-        self.ped_traj_pred_ = traj_prediction()
+        self.ped_traj_pred_ = traj_prediction(
+            self.sequence_length_, self.pred_len_, True
+        )
         self.dataloader_ = DataLoader(phase="test")
 
         # ! SUBSCRIBERS
@@ -98,7 +100,9 @@ class HumanTrajPredictor(Node):
             # ped_mask = torch.cat((ped_mask, torch.full((6, 55), False)), dim=1)
 
             veh_mask = get_mask_tensor(self.sequence_length_ * 2, 1, False)
-            veh_mask = torch.cat((veh_mask, torch.full((12, 14), False)), dim=1)
+            veh_mask = torch.cat(
+                (veh_mask, torch.full((self.sequence_length_ * 2, 14), False)), dim=1
+            )
 
             # empty tensors
             veh_pos = torch.rand(self.sequence_length_ * 2, 15, 5)
