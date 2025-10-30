@@ -149,6 +149,20 @@ class HumanTrajPredictor(Node):
         for j in range(self.max_human_num_):
             agent_state_prediction = AgentStatePrediction()
             agent_state_prediction.agent_state = self.agents_data_[j]
+
+            # add initial pose into prediction with very low covariance
+            predicted_pose = PoseWith2DCovariance()
+            predicted_pose.header.frame_id = self.agents_data_[j].header.frame_id
+            predicted_pose.header.stamp = (
+                RclpyTime.from_msg(self.agents_data_[j].header.stamp)
+            ).to_msg()
+            predicted_pose.pose = self.agents_data_[j].pose
+            predicted_pose.covariance[0] = 0.0000001
+            predicted_pose.covariance[1] = 0.0
+            predicted_pose.covariance[2] = 0.0
+            predicted_pose.covariance[3] = 0.0000001
+            agent_state_prediction.predicted_poses.append(predicted_pose)
+
             for i in range(self.sequence_length_):
                 predicted_pose = PoseWith2DCovariance()
                 predicted_pose.header.frame_id = self.agents_data_[j].header.frame_id
