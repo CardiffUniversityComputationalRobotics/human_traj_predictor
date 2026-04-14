@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+# import pandas as pd
 import numpy as np
 import pickle
 from torch.autograd import Variable
@@ -139,11 +139,11 @@ class DataLoader:
             ]
 
             # read train/test/validation file to pandas dataframe and process
-            df_orig = pd.read_csv(
-                directory,
-                dtype={"frame_id": "int", "agent_id": "int", "label": "str"},
-                usecols=column_names,
-            )
+            # df_orig = pd.read_csv(
+            #     directory,
+            #     dtype={"frame_id": "int", "agent_id": "int", "label": "str"},
+            #     usecols=column_names,
+            # )
             df_orig = df_orig[
                 column_names
             ]  # changing the order of the columns as specifed inn the "columns_names"
@@ -460,7 +460,7 @@ class DataLoader:
         This mask will be used instead of the pedList and lookup table
         """
         # get unique ids from sequence
-        unique_ids = pd.unique(np.concatenate(pedlist).ravel().tolist()).astype(int)
+        # unique_ids = pd.unique(np.concatenate(pedlist).ravel().tolist()).astype(int)
         # create a lookup table which maps ped ids -> array indices
         lookup_table = dict(zip(unique_ids, range(0, len(unique_ids))))
 

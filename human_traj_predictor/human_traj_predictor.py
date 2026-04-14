@@ -1,3 +1,8 @@
+import numpy as np
+# Patch removed function for transforms3d
+if not hasattr(np, 'maximum_sctype'):
+    np.maximum_sctype = lambda t: t
+
 import math
 from collections import defaultdict, deque
 import rclpy
@@ -29,8 +34,8 @@ class HumanTrajPredictor(Node):
         super().__init__("human_traj_predictor")
 
         self.recording_period_ = 0.5
-        self.sequence_length_ = 18
-        self.pred_len_ = 18
+        self.sequence_length_ = 6
+        self.pred_len_ = 6
         self.max_human_num_ = 10
 
         self.history_counter_ = 0
@@ -78,75 +83,74 @@ class HumanTrajPredictor(Node):
         self.pred_timer = self.create_timer(0.1, self.predict_traj)
 
     def predict_traj(self):
+            if (
+                self.agents_data_
+                and len(self.agents_data_) > 0
+                and self.odom_data_
+                and self.history_counter_ > self.sequence_length_
+            ):
 
-        if (
-            self.agents_data_
-            and len(self.agents_data_) > 0
-            and self.odom_data_
-            and self.history_counter_ > self.sequence_length_
-        ):
+                # ped and robot tensors
+                ped_pos = get_social_agents_tensor(
+                    self.sequence_length_, self.agents_history
+                )
+                # ped_pos = torch.cat((ped_pos, torch.zeros(6, 55, 5)), dim=1)
+                robot_pos = get_odom_tensor(self.sequence_length_, self.odom_history)
 
-            # ped and robot tensors
-            ped_pos = get_social_agents_tensor(
-                self.sequence_length_, self.agents_history
-            )
-            # ped_pos = torch.cat((ped_pos, torch.zeros(6, 55, 5)), dim=1)
-            robot_pos = get_odom_tensor(self.sequence_length_, self.odom_history)
+                # mask tensors
+                ped_mask = get_mask_tensor(
+                    self.sequence_length_, len(self.agents_history.keys()), True
+                )
+                # ped_mask = torch.cat((ped_mask, torch.full((6, 55), False)), dim=1)
 
-            # mask tensors
-            ped_mask = get_mask_tensor(
-                self.sequence_length_, len(self.agents_history.keys()), True
-            )
-            # ped_mask = torch.cat((ped_mask, torch.full((6, 55), False)), dim=1)
-
-            veh_mask = get_mask_tensor(self.sequence_length_ * 2, 1, False)
-            veh_mask = torch.cat(
-                (veh_mask, torch.full((self.sequence_length_ * 2, 14), False)), dim=1
-            )
-
-            # empty tensors
-            veh_pos = torch.rand(self.sequence_length_ * 2, 15, 5)
-            robot_plan_env = torch.zeros(self.sequence_length_, 1, 5)
-
-            ob_ped_pos, ob_ped_mask, col_ind_pres_peds = filter_curr_ob(
-                ped_pos, ped_mask
-            )
-            ob_veh_pos, ob_veh_mask, col_ind_pres_vehs = filter_curr_ob(
-                veh_pos, veh_mask
-            )
-
-            pred_pos = torch.zeros((self.pred_len_, self.max_human_num_, 5))
-            pred_dist = torch.zeros((self.pred_len_, self.max_human_num_, 5))
-            pred_cov = (
-                torch.eye(2)
-                .unsqueeze(0)
-                .unsqueeze(0)
-                .repeat(self.pred_len_, self.max_human_num_, 1, 1)
-            )
-            # ones for making the inverse possible for not existing peds
-
-            with torch.no_grad():
-                # ped_pred: (pred_seq_len, num_peds, 5)
-                ped_pred, dist_param = self.ped_traj_pred_.forward(
-                    ob_ped_pos.cpu(),
-                    ob_ped_mask.cpu(),
-                    ob_veh_pos.cpu(),
-                    ob_veh_mask.cpu(),
-                    robot_pos.cpu(),
-                    robot_plan_env.cpu(),
-                    self.dataloader_.timestamp,
+                veh_mask = get_mask_tensor(self.sequence_length_ * 2, 1, False)
+                veh_mask = torch.cat(
+                    (veh_mask, torch.full((self.sequence_length_ * 2, 14), False)), dim=1
                 )
 
-                mux, muy, sx, sy, corr = getCoef(dist_param.cpu())
-                scaled_param_dist = torch.stack((mux, muy, sx, sy, corr), 2)
-                cov = cov_mat_generation(scaled_param_dist)
+                # empty tensors
+                veh_pos = torch.rand(self.sequence_length_ * 2, 15, 5)
+                robot_plan_env = torch.zeros(self.sequence_length_, 1, 5)
 
-                pred_pos[:, col_ind_pres_peds, :] = ped_pred.cpu()
-                pred_dist[:, col_ind_pres_peds, :] = dist_param.cpu()
-                pred_cov[:, col_ind_pres_peds, :, :] = cov.cpu()
-            # print(pred_cov)
-            self.publish_marker_array(pred_pos.tolist())
-            self.publish_agents_prediction(pred_pos.tolist(), pred_cov.tolist())
+                ob_ped_pos, ob_ped_mask, col_ind_pres_peds = filter_curr_ob(
+                    ped_pos, ped_mask
+                )
+                ob_veh_pos, ob_veh_mask, col_ind_pres_vehs = filter_curr_ob(
+                    veh_pos, veh_mask
+                )
+
+                pred_pos = torch.zeros((self.pred_len_, self.max_human_num_, 5))
+                pred_dist = torch.zeros((self.pred_len_, self.max_human_num_, 5))
+                pred_cov = (
+                    torch.eye(2)
+                    .unsqueeze(0)
+                    .unsqueeze(0)
+                    .repeat(self.pred_len_, self.max_human_num_, 1, 1)
+                )
+                # ones for making the inverse possible for not existing peds
+
+                with torch.no_grad():
+                    # ped_pred: (pred_seq_len, num_peds, 5)
+                    ped_pred, dist_param = self.ped_traj_pred_.forward(
+                        ob_ped_pos.cpu(),
+                        ob_ped_mask.cpu(),
+                        ob_veh_pos.cpu(),
+                        ob_veh_mask.cpu(),
+                        robot_pos.cpu(),
+                        robot_plan_env.cpu(),
+                        self.dataloader_.timestamp,
+                    )
+
+                    mux, muy, sx, sy, corr = getCoef(dist_param.cpu())
+                    scaled_param_dist = torch.stack((mux, muy, sx, sy, corr), 2)
+                    cov = cov_mat_generation(scaled_param_dist)
+
+                    pred_pos[:, col_ind_pres_peds, :] = ped_pred.cpu()
+                    pred_dist[:, col_ind_pres_peds, :] = dist_param.cpu()
+                    pred_cov[:, col_ind_pres_peds, :, :] = cov.cpu()
+                # print(pred_cov)
+                self.publish_marker_array(pred_pos.tolist())
+                self.publish_agents_prediction(pred_pos.tolist(), pred_cov.tolist())
 
     def publish_agents_prediction(self, pred_tensor, cov_tensor):
         agent_states_prediction = AgentStatesPrediction()
